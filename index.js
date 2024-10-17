@@ -101,22 +101,11 @@ async function getProjectionMap() {
   });
 }
 
-function teamCost(team) {
-  let cost = 0;
-  for (const position of Object.keys(team)) {
-    for (const player of team[position]) {
-      cost += player.cost;
-    }
-  }
-  return cost;
-}
-
 async function parseCSV(filePath) {
   const file = Bun.file(filePath);
   const contents = await file.text();
   return new Promise((resolve, reject) => {
     Papa.parse(contents, {
-      delimiter: ',',
       dynamicTyping: true,
       header: true,
       complete: results => {
@@ -127,6 +116,16 @@ async function parseCSV(filePath) {
       }
     });
   });
+}
+
+function teamCost(team) {
+  let cost = 0;
+  for (const position of Object.keys(team)) {
+    for (const player of team[position]) {
+      cost += player.cost;
+    }
+  }
+  return cost;
 }
 
 try {
