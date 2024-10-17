@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 
+const budget = 50000;
 const flexPositions = ['RB', 'WR', 'TE'];
 const salariesFile = './data/salaries.csv';
 const projectionsFile = './data/projections.csv';
@@ -32,7 +33,11 @@ function chooseTeam(players) {
   const team = {};
 
   for (const player of players) {
-    let {position} = player;
+    let {cost, position} = player;
+
+    // If there isn't enough money to buy the player, skip them.
+    if (spent + cost > budget) continue;
+
     let needPosition = playersNeeded[position] > 0;
 
     if (
