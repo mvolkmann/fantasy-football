@@ -12,33 +12,39 @@ const playersNeeded = {
   flex: 1
 };
 const teamSizeNeeded = Object.values(playersNeeded).reduce((a, b) => a + b, 0);
+
+let spent = 0;
 let teamSize = 0;
+
+function addPlayer(position, player, team) {
+  if (Array.isArray(team[position])) {
+    team[position].push(player);
+  } else {
+    team[position] = [player];
+  }
+
+  playersNeeded[position]--;
+  spent += player.cost;
+  teamSize++;
+}
 
 function chooseTeam(players) {
   const team = {};
 
   for (const player of players) {
-    const {position} = player;
-    const needPosition = playersNeeded[position] > 0;
-    if (needPosition) {
-      if (Array.isArray(team[position])) {
-        team[position].push(player);
-      } else {
-        team[position] = [player];
-      }
-      playersNeeded[position]--;
-      teamSize++;
-    } else {
-      if (flexPositions.includes(position) && playersNeeded.flex > 0) {
-        if (Array.isArray(team.flex)) {
-          team.flex.push(player);
-        } else {
-          team.flex = [player];
-        }
-        playersNeeded.flex--;
-        teamSize++;
-      }
+    let {position} = player;
+    let needPosition = playersNeeded[position] > 0;
+
+    if (
+      !needPosition &&
+      flexPositions.includes(position) &&
+      playersNeeded.flex > 0
+    ) {
+      position = 'flex';
+      needPosition = true;
     }
+
+    if (needPosition) addPlayer(position, player, team);
 
     if (teamSize === teamSizeNeeded) break;
   }
