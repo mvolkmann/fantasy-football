@@ -65,7 +65,6 @@ async function getPlayers() {
 
   //const salaries = await parseCSVFromFile(salariesFile);
   const salaries = await parseCSVFromURL(salariesURL);
-  console.log('index.js : salaries =', salaries);
 
   let players = salaries
     .filter(row => row.Name)
@@ -138,11 +137,21 @@ async function parseCSVFromURL(url) {
   return parseCSV(contents);
 }
 
+function printTeam(team) {
+  for (const key of Object.keys(team)) {
+    for (const player of team[key]) {
+      const {name, position, ppg, team} = player;
+      const first = key === 'flex' ? 'FLEX-' + position : position;
+      console.log(first, name, team, ppg);
+    }
+  }
+}
+
 try {
   const players = await getPlayers();
   const team = chooseTeam(players);
-  console.log('team =', team);
-  console.log('spent =', spent);
+  printTeam(team);
+  console.log('spent $' + spent);
 } catch (error) {
   console.error(error);
 }
