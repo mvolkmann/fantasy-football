@@ -1,8 +1,8 @@
 import Papa from 'papaparse';
 
 const flexPositions = ['RB', 'WR', 'TE'];
-const salariesFile = './data/DKSalaries.csv';
-const projectionsFile = './data/FantasyLabs_NFLProjections.csv';
+const salariesFile = './data/salaries.csv';
+const projectionsFile = './data/projections.csv';
 const playersNeeded = {
   QB: 1,
   RB: 2,
