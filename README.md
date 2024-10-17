@@ -1,16 +1,10 @@
 # fantasy-football
 
-To install dependencies:
+This selections players for a week in a fantasy football league.
+
+To run it:
 
 ```bash
 bun install
+bun run start
 ```
-
-To run:
-
-```bash
-bun run index.js
-```
-
-This project was created using `bun init` in bun v1.1.30. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
-# fantasy-football

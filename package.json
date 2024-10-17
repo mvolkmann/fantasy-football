@@ -1,0 +1,17 @@
+{
+  "name": "fantasy-football",
+  "module": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "papaparse": "^5.4.1"
+  }
+}
