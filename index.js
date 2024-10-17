@@ -1,6 +1,42 @@
 import Papa from 'papaparse';
 
 const budget = 50000;
+const teamToCityMap = {
+  '49ers': 'San Francisco',
+  Bears: 'Chicago',
+  Bengals: 'Cincinnati',
+  Bills: 'Buffalo',
+  Broncos: 'Denver',
+  Browns: 'Cleveland',
+  Buccaneers: 'Tampa Bay',
+  Cardinals: 'Arizona',
+  Chargers: 'LA Chargers',
+  Chiefs: 'Kansas City',
+  Colts: 'Indianapolis',
+  Commanders: 'Washington',
+  Cowboys: 'Dallas',
+  Dolphis: 'Miami',
+  Eagles: 'Philadelphia',
+  Falcons: 'Atlanta',
+  Giants: 'NY Giants',
+  Jaguars: 'Jacksonville',
+  Jets: 'NY Jets',
+  Lions: 'Detroit',
+  Packers: 'Green Bay',
+  Packers: 'GreenBay',
+  Panthers: 'Carolina',
+  Patriots: 'New England',
+  Raiders: 'Las Vegas',
+  Rams: 'LA Rams',
+  Ravens: 'Baltimore',
+  Saints: 'New Orleans',
+  Seahawks: 'Seattle',
+  Steelers: 'Pittsburg',
+  Texans: 'Houston',
+  Titans: 'Tennessee',
+  Vikings: 'Minnesota'
+};
+
 const flexPositions = ['RB', 'WR', 'TE'];
 //const salariesFile = './data/salaries.csv';
 const salariesURL =
@@ -98,10 +134,15 @@ async function getPlayers() {
 
 async function getProjectionMap() {
   const projections = await parseCSVFromFile(projectionsFile);
+  const dToken = ' Defense';
   return projections.reduce((map, row) => {
-    const {Player} = row;
-    if (Player) {
-      map[Player.trim()] = {
+    let name = row.Player;
+    if (name?.endsWith(dToken)) {
+      name = name.substring(0, name.length - dToken.length);
+      name = cityToTeamMap[name] || name;
+    }
+    if (name) {
+      map[name] = {
         draftKings: row.FantasyPointsDraftKings,
         fanDuel: row.FantasyPointsFanDuel
       };
@@ -149,6 +190,7 @@ function printTeam(team) {
 
 try {
   const players = await getPlayers();
+  //console.log('index.js : players =', players);
   const team = chooseTeam(players);
   printTeam(team);
   console.log('spent $' + spent);
