@@ -2,7 +2,10 @@ import Papa from 'papaparse';
 
 const budget = 50000;
 const flexPositions = ['RB', 'WR', 'TE'];
-const salariesFile = './data/salaries.csv';
+//const salariesFile = './data/salaries.csv';
+const salariesURL =
+  'https://www.draftkings.com/lineup/getavailableplayerscsv' +
+  '?contestTypeId=21&draftGroupId=115067';
 const projectionsFile = './data/projections.csv';
 const playersNeeded = {
   QB: 1,
@@ -60,7 +63,9 @@ function chooseTeam(players) {
 async function getPlayers() {
   const projectionMap = await getProjectionMap();
 
-  const salaries = await parseCSV(salariesFile);
+  //const salaries = await parseCSVFromFile(salariesFile);
+  const salaries = await parseCSVFromURL(salariesURL);
+  console.log('index.js : salaries =', salaries);
 
   let players = salaries
     .filter(row => row.Name)
@@ -93,7 +98,7 @@ async function getPlayers() {
 }
 
 async function getProjectionMap() {
-  const projections = await parseCSV(projectionsFile);
+  const projections = await parseCSVFromFile(projectionsFile);
   return projections.reduce((map, row) => {
     const {Player} = row;
     if (Player) {
@@ -106,11 +111,9 @@ async function getProjectionMap() {
   });
 }
 
-async function parseCSV(filePath) {
-  const file = Bun.file(filePath);
-  const contents = await file.text();
+async function parseCSV(csv) {
   return new Promise((resolve, reject) => {
-    Papa.parse(contents, {
+    Papa.parse(csv, {
       dynamicTyping: true,
       header: true,
       complete: results => {
@@ -121,6 +124,18 @@ async function parseCSV(filePath) {
       }
     });
   });
+}
+
+async function parseCSVFromFile(filePath) {
+  const file = Bun.file(filePath);
+  const contents = await file.text();
+  return parseCSV(contents);
+}
+
+async function parseCSVFromURL(url) {
+  const res = await fetch(url);
+  const contents = await res.text();
+  return parseCSV(contents);
 }
 
 try {
