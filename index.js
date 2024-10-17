@@ -118,21 +118,11 @@ async function parseCSV(filePath) {
   });
 }
 
-function teamCost(team) {
-  let cost = 0;
-  for (const position of Object.keys(team)) {
-    for (const player of team[position]) {
-      cost += player.cost;
-    }
-  }
-  return cost;
-}
-
 try {
   const players = await getPlayers();
   const team = chooseTeam(players);
   console.log('team =', team);
-  console.log('total cost =', teamCost(team));
+  console.log('spent =', spent);
 } catch (error) {
   console.error(error);
 }
