@@ -56,6 +56,8 @@ let spent = 0;
 let teamSize = 0;
 
 function addPlayer(position, player, team) {
+  if (position === 'flex') player.isFlex = true;
+
   if (Array.isArray(team[position])) {
     team[position].push(player);
   } else {
@@ -177,21 +179,74 @@ async function parseCSVFromURL(url) {
   return parseCSV(contents);
 }
 
-function printTeam(team) {
-  for (const key of Object.keys(team)) {
-    for (const player of team[key]) {
-      const {name, position, ppg, team} = player;
-      const first = key === 'flex' ? 'FLEX-' + position : position;
-      console.log(first, name, team, ppg);
-    }
+function printTeam(players) {
+  for (const player of players) {
+    const {draftKings, name, position, team} = player;
+    const label = player.isFlex ? 'FLEX-' + position : position;
+    console.log(label, name, team, draftKings);
   }
+}
+
+function upgradeTeam(players, team) {
+  // Get array of selected players
+  //sorted from lowest to highest point projection.
+  const selectedPlayers = Object.values(team).flat();
+  const selectedNames = new Set(selectedPlayers.map(player => player.name));
+  selectedPlayers.sort((a, b) => a.draftKings - b.draftKings);
+
+  // Attempt to replace each player.
+  selectedPlayers.map((selectedPlayer, index) => {
+    let evaluatingPlayer = selectedPlayer;
+    const {cost, position} = evaluatingPlayer;
+    let toSpend = budget - spent + cost;
+
+    for (const player of players) {
+      // TODO: For now, don't upgrade flex players.
+      if (player.isFlex) continue;
+
+      const alreadySelected = selectedNames.has(player.name);
+      const matchingPosition = player.position === position;
+      const betterProjection = player.draftKings > evaluatingPlayer.draftKings;
+      const canAfford = player.cost <= toSpend;
+      if (
+        !alreadySelected &&
+        matchingPosition &&
+        betterProjection &&
+        canAfford
+      ) {
+        selectedNames.delete(selectedPlayer.name);
+        selectedNames.add(player.name);
+        selectedPlayer = player;
+      }
+    }
+
+    if (selectedPlayer !== evaluatingPlayer) {
+      console.log(
+        'replacing',
+        evaluatingPlayer.position,
+        evaluatingPlayer.name,
+        'with',
+        selectedPlayer.name
+      );
+      if (evaluatingPlayer.isFlex) selectedPlayer.isFlex = true;
+      selectedPlayers[index] = selectedPlayer;
+      spent = spent - cost + selectedPlayer.cost;
+    }
+  });
+
+  spent = selectedPlayers.reduce((acc, player) => acc + player.cost, 0);
+  return selectedPlayers;
 }
 
 try {
   const players = await getPlayers();
   //console.log('index.js : players =', players);
   const team = chooseTeam(players);
-  printTeam(team);
+  printTeam(Object.values(team).flat());
+  console.log(`spent $${spent}\n`);
+  const finalPlayers = upgradeTeam(players, team);
+  console.log();
+  printTeam(finalPlayers.reverse());
   console.log('spent $' + spent);
 } catch (error) {
   console.error(error);
