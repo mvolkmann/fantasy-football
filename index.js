@@ -47,7 +47,7 @@ const playersNeeded = {
   RB: 2,
   WR: 3,
   TE: 1,
-  DST: 1,
+  //DST: 1, // picking this last
   flex: 1
 };
 const teamSizeNeeded = Object.values(playersNeeded).reduce((a, b) => a + b, 0);
@@ -72,6 +72,7 @@ function addPlayer(position, player, team) {
 function chooseTeam(players) {
   const team = {};
 
+  // Choose a player for each position except defense.
   for (const player of players) {
     let {cost, position} = player;
 
@@ -92,6 +93,21 @@ function chooseTeam(players) {
     if (needPosition) addPlayer(position, player, team);
 
     if (teamSize === teamSizeNeeded) break;
+  }
+
+  // Choose defense last.
+  let selectedDefense = false;
+  for (const player of players) {
+    if (player.position === 'DST') {
+      if (spent + player.cost <= budget) {
+        addPlayer('DST', player, team);
+        selectedDefense = true;
+        break;
+      }
+    }
+  }
+  if (!selectedDefense) {
+    console.log('insufficient remaining budget for defense!');
   }
 
   return team;
@@ -119,7 +135,6 @@ async function getPlayers() {
     if (projection) {
       player.draftKings = projection.draftKings;
       player.fanDuel = projection.fanDuel;
-      //player.pointsPerDollar = player.ppg / player.cost;
       player.pointsPerDollar = player.draftKings / player.cost;
     }
   });
@@ -180,6 +195,7 @@ async function parseCSVFromURL(url) {
 }
 
 function printTeam(players) {
+  players.sort((a, b) => b.draftKings - a.draftKings);
   for (const player of players) {
     const {draftKings, name, position, team} = player;
     const label = player.isFlex ? 'FLEX-' + position : position;
@@ -189,7 +205,7 @@ function printTeam(players) {
 
 function upgradeTeam(players, team) {
   // Get array of selected players
-  //sorted from lowest to highest point projection.
+  // sorted from lowest to highest point projection.
   const selectedPlayers = Object.values(team).flat();
   const selectedNames = new Set(selectedPlayers.map(player => player.name));
   selectedPlayers.sort((a, b) => a.draftKings - b.draftKings);
@@ -222,7 +238,7 @@ function upgradeTeam(players, team) {
 
     if (selectedPlayer !== evaluatingPlayer) {
       console.log(
-        'replacing',
+        'replaced',
         evaluatingPlayer.position,
         evaluatingPlayer.name,
         'with',
@@ -244,9 +260,10 @@ try {
   const team = chooseTeam(players);
   printTeam(Object.values(team).flat());
   console.log(`spent $${spent}\n`);
+
   const finalPlayers = upgradeTeam(players, team);
   console.log();
-  printTeam(finalPlayers.reverse());
+  printTeam(finalPlayers);
   console.log('spent $' + spent);
 } catch (error) {
   console.error(error);
