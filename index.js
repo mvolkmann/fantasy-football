@@ -79,6 +79,13 @@ function chooseTeam(players) {
     // If there isn't enough money to buy the player, skip them.
     if (spent + cost > budget) continue;
 
+    // If a player from the same team has already been selected
+    // for this position, skip this player.
+    const positionPlayers = team[position];
+    if (Array.isArray(positionPlayers)) {
+      if (positionPlayers.some(p => p.team === player.team)) continue;
+    }
+
     let needPosition = playersNeeded[position] > 0;
 
     if (
@@ -113,14 +120,17 @@ function chooseTeam(players) {
   return team;
 }
 
-async function getPlayers() {
+async function getPlayers(teamsOut) {
   const projectionMap = await getProjectionMap();
 
   //const salaries = await parseCSVFromFile(salariesFile);
   const salaries = await parseCSVFromURL(salariesURL);
 
   let players = salaries
+    // Only evaluate players that have "Name" property.
     .filter(row => row.Name)
+    // Only evaluate players that are eligible to play.
+    .filter(row => !teamsOut.has(row.TeamAbbrev))
     .map(row => ({
       name: row.Name.trim(),
       cost: row.Salary,
@@ -165,6 +175,12 @@ async function getProjectionMap() {
     }
     return map;
   });
+}
+
+async function getTeamsOut() {
+  const file = Bun.file('./data/teams-out.txt');
+  const contents = await file.text();
+  return new Set(contents.split('\n'));
 }
 
 async function parseCSV(csv) {
@@ -255,8 +271,8 @@ function upgradeTeam(players, team) {
 }
 
 try {
-  const players = await getPlayers();
-  //console.log('index.js : players =', players);
+  const teamsOut = await getTeamsOut();
+  const players = await getPlayers(teamsOut);
   const team = chooseTeam(players);
   printTeam(Object.values(team).flat());
   console.log(`spent $${spent}\n`);
