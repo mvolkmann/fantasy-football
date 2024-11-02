@@ -219,17 +219,17 @@ function printTeam(players) {
   }
 }
 
-function upgradeTeam(players, team) {
+function upgradeTeam(players, currentTeam) {
   // Get array of selected players
   // sorted from lowest to highest point projection.
-  const selectedPlayers = Object.values(team).flat();
+  const selectedPlayers = Object.values(currentTeam).flat();
   const selectedNames = new Set(selectedPlayers.map(player => player.name));
   selectedPlayers.sort((a, b) => a.draftKings - b.draftKings);
 
   // Attempt to replace each player.
   selectedPlayers.map((selectedPlayer, index) => {
     let evaluatingPlayer = selectedPlayer;
-    const {cost, position} = evaluatingPlayer;
+    const {cost, position, team} = evaluatingPlayer;
     let toSpend = budget - spent + cost;
 
     for (const player of players) {
@@ -246,6 +246,11 @@ function upgradeTeam(players, team) {
         betterProjection &&
         canAfford
       ) {
+        const samePositionAndTeam = selectedPlayers.some(
+          p => player.position === p.position && player.team === p.team
+        );
+        if (samePositionAndTeam) continue;
+
         selectedNames.delete(selectedPlayer.name);
         selectedNames.add(player.name);
         selectedPlayer = player;
