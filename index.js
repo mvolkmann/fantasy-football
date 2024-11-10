@@ -37,25 +37,21 @@ const cityToTeamMap = {
 
 const budget = 50000;
 const flexPositions = ['RB', 'WR', 'TE'];
-//const salariesFile = './data/salaries.csv';
+const groupId = 116425; //TODO: THIS CHANGES EVERY WEEK!
 const salariesURL =
   'https://www.draftkings.com/lineup/getavailableplayerscsv' +
-  '?contestTypeId=21&draftGroupId=115067';
+  '?contestTypeId=21&draftGroupId=' +
+  groupId;
 const projectionsFile = './data/projections.csv';
-const playersNeeded = {
-  QB: 1,
-  RB: 2,
-  WR: 3,
-  TE: 1,
-  //DST: 1, // picking this last
-  flex: 1
-};
+const playersNeeded = {};
+const team = {};
 const teamSizeNeeded = Object.values(playersNeeded).reduce((a, b) => a + b, 0);
 
+let selectedDefense = false;
 let spent = 0;
 let teamSize = 0;
 
-function addPlayer(position, player, team) {
+function addPlayer(position, player) {
   if (position === 'flex') player.isFlex = true;
 
   if (Array.isArray(team[position])) {
@@ -67,11 +63,12 @@ function addPlayer(position, player, team) {
   playersNeeded[position]--;
   spent += player.cost;
   teamSize++;
+
+  if (position === 'DST') selectedDefense = true;
 }
 
+// This populates the team argument and doesn't return anything.
 function chooseTeam(players) {
-  const team = {};
-
   // Choose a player for each position except defense.
   for (const player of players) {
     let {cost, position} = player;
@@ -102,22 +99,40 @@ function chooseTeam(players) {
     if (teamSize === teamSizeNeeded) break;
   }
 
-  // Choose defense last.
-  let selectedDefense = false;
-  for (const player of players) {
-    if (player.position === 'DST') {
-      if (spent + player.cost <= budget) {
-        addPlayer('DST', player, team);
-        selectedDefense = true;
-        break;
+  if (!selectedDefense) {
+    // Choose defense last.
+    for (const player of players) {
+      if (player.position === 'DST') {
+        if (spent + player.cost <= budget) {
+          addPlayer('DST', player, team);
+          break; // Don't consider remaining players.
+        }
       }
     }
   }
-  if (!selectedDefense) {
-    console.log('insufficient remaining budget for defense!');
-  }
+}
 
-  return team;
+function clearTeam() {
+  for (const key of Object.keys(team)) {
+    delete team[key];
+  }
+  spent = 0;
+  teamSize = 0;
+  playersNeeded.QB = 1;
+  playersNeeded.RB = 2;
+  playersNeeded.WR = 3;
+  playersNeeded.TE = 1;
+  playersNeeded.flex = 1;
+  // picking DST last
+}
+
+function getCheapestDefense(players) {
+  let defense;
+  for (const player of players) {
+    if (player.position !== 'DST') continue;
+    if (!defense || player.cost < defense.cost) defense = player;
+  }
+  return defense;
 }
 
 async function getPlayers(teamsOut) {
@@ -212,24 +227,32 @@ async function parseCSVFromURL(url) {
 
 function printTeam(players) {
   players.sort((a, b) => b.draftKings - a.draftKings);
+  let points = 0;
   for (const player of players) {
     const {draftKings, name, position, team} = player;
     const label = player.isFlex ? 'FLEX-' + position : position;
     console.log(label, name, team, draftKings);
+    points += draftKings;
   }
+  console.log('projected points:', points.toFixed(1));
 }
 
-function upgradeTeam(players, currentTeam) {
+function upgradeTeam(players) {
   // Get array of selected players
   // sorted from lowest to highest point projection.
-  const selectedPlayers = Object.values(currentTeam).flat();
+  const selectedPlayers = Object.values(team).flat();
   const selectedNames = new Set(selectedPlayers.map(player => player.name));
+
+  // Sort by ascending draftKings projections.
   selectedPlayers.sort((a, b) => a.draftKings - b.draftKings);
+
+  //TODO: Try to upgrade the flex pick first.
+  //TODO: Then try to upgrade the defense.
 
   // Attempt to replace each player.
   selectedPlayers.map((selectedPlayer, index) => {
     let evaluatingPlayer = selectedPlayer;
-    const {cost, position, team} = evaluatingPlayer;
+    const {cost, position} = evaluatingPlayer;
     let toSpend = budget - spent + cost;
 
     for (const player of players) {
@@ -278,11 +301,22 @@ function upgradeTeam(players, currentTeam) {
 try {
   const teamsOut = await getTeamsOut();
   const players = await getPlayers(teamsOut);
-  const team = chooseTeam(players);
+
+  clearTeam();
+  chooseTeam(players);
+
+  if (!selectedDefense) {
+    // There wasn't enough money remaining to buy a defense, so
+    // choose the team again by picking the least expensive defense first.
+    clearTeam();
+    addPlayer('DST', getCheapestDefense(players));
+    chooseTeam(players);
+  }
+
   printTeam(Object.values(team).flat());
   console.log(`spent $${spent}\n`);
 
-  const finalPlayers = upgradeTeam(players, team);
+  const finalPlayers = upgradeTeam(players);
   console.log();
   printTeam(finalPlayers);
   console.log('spent $' + spent);
